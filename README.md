@@ -1,2 +1,11 @@
 # oompa_loompas
-Little helpers in various languages
+Little helpers in various languages.
+
+
+## Helpers List 
+- helper.rb
+  - Fops (File Operations)
+  - Date (Fomratting, converting, sorting helpers dealing with dates)
+  - HTTP (Suite of http commands built using Faraday)
+- helper.py
+  - HTTP (Suite of http commands built using Faraday)

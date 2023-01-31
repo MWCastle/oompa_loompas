@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require 'faraday'
 require 'json'
@@ -17,23 +18,33 @@ module Helper
 
     # Will return a hash when given a path to a correctly formatted json file. Otherwise throws error.
     def self.json_to_hash(path, **options)
-      unless File.file?(path)
-        puts 'Invalid Filepath in json_to_hash'
+      if !path.end_with?('.json') || !File.file?(path)
+        puts 'json_to_hash: Invalid Filepath. Aborting...'
         return nil
       end
 
       jason = File.read(path)
       if jason.strip.empty?
-        nil
+        {}
       else
         JSON.parse(jason, options)
       end
     end
 
-    # Will write a hash to json file with proper formatting.
+    # Will write a hash to json file with human-readable formatting.
     def self.hash_to_json(hash, path)
-      File.open(path, 'w') do |json|
-        json.write JSON.pretty_generate(hash)
+      unless path.end_with?('.json')
+        puts 'hash_to_json: Invalid Filepath. Aborting...'
+        false
+      end
+
+      if check_full_path_dirs(path)
+        File.open(path, 'w') do |json|
+          json.write JSON.pretty_generate(hash)
+        end
+        true
+      else
+        false
       end
     end
 
@@ -41,13 +52,20 @@ module Helper
     #                                             EXCEL HELPER METHODS                                                #
     # *************************************************************************************************************** #
 
-    # TODO: Check if this works with .xls as well or just .xlsx
     # Will return a workbook object from .xlsx files given a path
-    # To get a specific sheet from a workbook, use workbook.worksheets[#] array
-    # To get a specific row from a worksheet, use worksheet[#]
-    # To get cell values from a row used row[#].value or row[#].raw_value
+    # RubXL will not work for .xls files, so these along with anything else that is not .xlsx are ignored
     def self.workbook_from_excel(path)
-      RubyXL::Parser.parse(path)
+      unless path.end_with?('.xlsx')
+        puts "workbook_from_excel: File type not '.xlsx'. Aborting... "
+        return nil
+      end
+
+      if File.exist?(path)
+        RubyXL::Parser.parse(path)
+      else
+        puts 'workbook_from_excel: workbook_from_excel: Invalid path. Aborting...'
+        nil
+      end
     end
 
     # *************************************************************************************************************** #
@@ -65,7 +83,7 @@ module Helper
       end
     end
 
-    # TODO: Need to check how this handles having headers or not as well as splat operator
+    # TODO: Need to check how this handles having headers as well as splat operator
     # Returns and array of the rows from a csv file.
     def self.get_csv_rows(path, have_headers: false, add_opt: nil)
       if add_opt
@@ -79,17 +97,51 @@ module Helper
     #                                       DIRECTORY/PATHS HELPER METHODS                                            #
     # *************************************************************************************************************** #
 
+    # Used solely to check that the directories in a full path all exist to avoid write functions failing when trying to
+    # open the file. Expects a full path. Ignores what comes after final '/'.
+    # Returns a true if the full path is valid or false otherwise.
+    def self.check_full_path_dirs(path)
+      split_path = path.split('/')
+
+      if split_path.empty?
+        puts 'check_full_path_dirs: Invalid path parameter.'
+        false
+      else
+        ret_val = true
+        check_path = +''
+        index = 1
+
+        if split_path[0] == ''
+          check_path << '/'
+          while index < split_path.size - 1
+            check_path << "#{split_path[index]}/"
+            ret_val = Dir.exist?(check_path) ? true : false
+            index += 1
+          end
+        else
+          puts 'check_full_path_dirs: path parameter is not a full path.'
+          ret_val = false
+        end
+        ret_val
+      end
+    end
+
     # Will return a hash of arrays containing all non-hidden subdirectories and files given a certain directory path
     def self.get_direct_subpaths(path)
       paths = { directories: [], files: [] }
 
-      subs = Dir.glob("#{path}/**")
-      subs.each do |sub_path|
-        if Dir.exist?(sub_path)
-          paths[:directories].push(sub_path)
-        else
-          paths[:files].push(sub_path)
+      if Dir.exist?(path)
+        subs = Dir.glob("#{path}/**")
+        subs.each do |sub_path|
+          if Dir.exist?(sub_path)
+            paths[:directories].push(sub_path)
+          else
+            paths[:files].push(sub_path)
+          end
         end
+      else
+        puts 'get_direct_subpaths: path parameter is not a directory. Aborting...'
+        return nil
       end
       paths
     end
@@ -99,15 +151,21 @@ module Helper
       paths = { directories: [], files: [] }
       queue = []
 
-      subs = get_direct_subpaths(path)
-      paths[:directories].push(*subs[:directories])
-      paths[:files].push(*subs[:files])
-      queue.push(*subs[:directories])
-      while queue.size.positive?
-        subs = get_direct_subpaths(queue.pop)
+      if Dir.exist?(path)
+        subs = get_direct_subpaths(path)
         paths[:directories].push(*subs[:directories])
         paths[:files].push(*subs[:files])
         queue.push(*subs[:directories])
+
+        while queue.size.positive?
+          subs = get_direct_subpaths(queue.pop)
+          paths[:directories].push(*subs[:directories])
+          paths[:files].push(*subs[:files])
+          queue.push(*subs[:directories])
+        end
+      else
+        puts 'get_all_subpaths: path parameter is not a directory. Aborting...'
+        return nil
       end
       paths
     end
@@ -413,5 +471,3 @@ module Helper
 
   end
 end
-
-# TODO: Create a method that returns just the name of the file given a full_path

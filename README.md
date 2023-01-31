@@ -1,5 +1,5 @@
 # oompa_loompas
-Little helpers in various languages.
+Little helpers in various languages. Usually included as subrepo to project requiring helpers. 
 
 
 ## Helpers List 

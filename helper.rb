@@ -44,7 +44,17 @@ module Helper
         end
         true
       else
-        false
+        msg = 'hash_to_json: At least one directory in the full path provided does not exist. Would you like to create
+               it (them) and continue the write process? (y/n)'
+        if yes_or_no_loop(msg)
+          create_full_path_dirs(path)
+          File.open(path, 'w') do |json|
+            json.write JSON.pretty_generate(hash)
+          end
+          true
+        else
+          false
+        end
       end
     end
 
@@ -72,20 +82,46 @@ module Helper
     #                                             CSV HELPER METHODS                                                  #
     # *************************************************************************************************************** #
 
-    # TODO: add in rescue to have function return false if something fails, but return true if the generation completes
     # Will write to a csv file given a path, data to write, and optionally headers.
-    def self.write_csv(path, data_rows, headers = [])
-      CSV.open(path, 'wb') do |csv|
-        csv << headers unless headers.empty?
-        data_rows.each do |row|
-          csv << row
+    def self.array2d_to_csv(path, data_rows, headers = [])
+      unless path.end_with?('.csv')
+        puts 'write_csv: Invalid Filepath. Aborting...'
+        false
+      end
+
+      if check_full_path_dirs(path)
+        CSV.open(path, 'wb') do |csv|
+          csv << headers unless headers.empty?
+          data_rows.each do |row|
+            csv << row
+          end
+        end
+        true
+      else
+        msg = 'array2d_to_csv: At least one directory in the full path provided does not exist. Would you like to create
+               it (them) and continue the write process? (y/n)'
+        if yes_or_no_loop(msg)
+          create_full_path_dirs(path)
+          CSV.open(path, 'wb') do |csv|
+            csv << headers unless headers.empty?
+            data_rows.each do |row|
+              csv << row
+            end
+          end
+          true
+        else
+          false
         end
       end
     end
 
-    # TODO: Need to check how this handles having headers as well as splat operator
-    # Returns and array of the rows from a csv file.
-    def self.get_csv_rows(path, have_headers: false, add_opt: nil)
+    # Returns a 2d array of the rows from a csv file.
+    def self.csv_to_array2d(path, have_headers: false, add_opt: nil)
+      if !path.end_with?('.csv') || !File.file?(path)
+        puts 'csv_to_array2d: Invalid Filepath. Aborting...'
+        return nil
+      end
+
       if add_opt
         CSV.parse(path, headers: have_headers, **add_opt)
       else
@@ -96,6 +132,34 @@ module Helper
     # *************************************************************************************************************** #
     #                                       DIRECTORY/PATHS HELPER METHODS                                            #
     # *************************************************************************************************************** #
+
+    # Given a full path. This will create directories to make full path exist. Usually only executed after
+    # check_full_path_dirs
+    # Returns true only if the path is valid and it was created. Returns false otherwise.
+    def self.create_full_path_dirs(path)
+      split_path = path.split('/')
+
+      if split_path.empty?
+        puts 'create_full_path_dirs: Ivalid path parameter'
+        false
+      else
+        ret_val = true
+        check_path = +''
+        index = 1
+
+        if split_path[0] == ''
+          check_path << '/'
+          while index < split_path.size - 1
+            check_path << "#{split_path[index]}/"
+            system("mkdir #{check_path}") unless Dir.exist?(check_path)
+          end
+        else
+          puts 'create_full_path_dirs: path parameter is not a full path.'
+          ret_val = false
+        end
+        ret_val
+      end
+    end
 
     # Used solely to check that the directories in a full path all exist to avoid write functions failing when trying to
     # open the file. Expects a full path. Ignores what comes after final '/'.
@@ -469,5 +533,24 @@ module Helper
     # TODO: Look into a check request and/or connection status
     # def self.check_connection_status
 
+  end
+
+  # Class for general helper methods. Usually common logic blocks that aren't specific to one of the classes above
+  class General
+    def self.yes_or_no_loop(message)
+      puts message
+      input = gets&.chomp!
+      while input != 'y' && input != 'Y' && input != 'n' && input != 'N'
+        puts 'Invalid input...'
+        puts message
+        input = gets&.chomp!
+      end
+      case input
+      when 'y' then true
+      when 'Y' then true
+      when 'n' then false
+      when 'N' then false
+      end
+    end
   end
 end

@@ -428,7 +428,7 @@ module Helper
     # Function to create a fleet connection with endpoint set to what user specifies and return a pointer to it.
     # Defaults to not outputting errors and no authorization. error flags can be set and authentication can be provided
     # via 'creds' hash with keys :username and :password
-    def self.get_fleet_connection(environment, raise_errors: false, creds: nil)
+    def self.get_fleet_connection(environment, creds = nil, raise_errors: false)
       connection = nil
       if @@endpoints[environment]
         connection = Faraday.new(@@endpoints[environment]) do |conn|

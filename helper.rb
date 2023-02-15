@@ -428,12 +428,12 @@ module Helper
     # Function to create a fleet connection with endpoint set to what user specifies and return a pointer to it.
     # Defaults to not outputting errors and no authorization. error flags can be set and authentication can be provided
     # via 'creds' hash with keys :username and :password
-    def self.get_fleet_connection(environment, creds, raise_errors: false)
+    def self.get_fleet_connection(environment, usr, pswd, raise_errors: false)
       connection = nil
       if @@endpoints[environment]
         connection = Faraday.new(@@endpoints[environment]) do |conn|
           conn.use Faraday::Response::RaiseError if raise_errors
-          conn.request :authorization, :basic, creds['username'], creds['password'] if creds
+          conn.request :authorization, :basic, usr, pswd
           conn.request :json
           conn.response :json
           # conn.request :retry    NOT SURE IF THIS DOES WHAT I THINK SO COMMENT IT FOR NOW

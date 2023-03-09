@@ -436,7 +436,7 @@ module Helper
           conn.request :authorization, :basic, usr, pswd
           conn.request :json
           conn.response :json
-          # conn.request :retry    NOT SURE IF THIS DOES WHAT I THINK SO COMMENT IT FOR NOW
+          conn.request :retry # NOT SURE IF THIS DOES WHAT I THINK
         end
       else
         puts "Invalid endpoint selected. You provided: #{environment}"

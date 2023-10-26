@@ -1,0 +1,25 @@
+name: release-gem
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+jobs:
+  build:
+    name: build and push rubygem
+    runs-on:
+      - self-hosted
+      - k8s
+    container: ruby:3.1.2
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          bundle install
+          rake build
+          mkdir ~/.gem
+          printf -- "---\n:github: Bearer ${GITHUB_TOKEN}\n" > ~/.gem/credentials
+          chmod 600 ~/.gem/credentials
+          export OWNER=$( echo ${{ github.repository_owner }} )
+          gem push --KEY github --host https://rubygems.pkg.github.com/${GITHUB_REPOSITORY_OWNER} pkg/*.gem
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_WRITEPACKAGES_TOKEN }}
+          BUNDLE_RUBYGEMS__PKG__GITHUB__COM: badgerbargit:${{ secrets.GH_WRITEPACKAGES_TOKEN }}

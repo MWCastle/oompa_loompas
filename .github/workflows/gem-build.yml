@@ -1,0 +1,16 @@
+name: gem-build
+on: [ push ]
+jobs:
+  build:
+    runs-on:
+      - self-hosted
+      - k8s
+    container: ruby:3.1.2
+    steps:
+      - uses: actions/checkout@v2
+      - name: build
+        run: |
+          bundle install
+          bundle exec rake
+        env:
+          BUNDLE_RUBYGEMS__PKG__GITHUB__COM: badgerbargit:${{ secrets.GH_WRITEPACKAGES_TOKEN }}
